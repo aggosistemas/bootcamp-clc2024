@@ -1,2 +1,2 @@
-# devopslab-template
-Repositório Template para Importação do Laboratório DevOps &amp; Cloud
+# DevOps Infinity Loop - Hands On
+Aplicação Simples em Python/Flask para exemplificar o Laboratório.
