@@ -14,7 +14,7 @@ def pagina_inicial():
         body {
             font-family: Arial, sans-serif;
             text-align: center;
-            padding: 20px;
+            padding: 19px;
             transition: background-color 0.5s ease; /* Suaviza a transição de cores */
         }
         h1 {
