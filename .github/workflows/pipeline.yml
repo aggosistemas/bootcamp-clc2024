@@ -13,6 +13,9 @@ jobs:
     steps:
       - name: Download do Repositório
         uses: actions/checkout@v4       # https://github.com/actions/checkout
+        with:
+          # Você está solicitando que nenhum histórico seja baixado além do commit mais recente.
+          fetch-depth: 0
 
       - name: Setup Python
         uses: actions/setup-python@v5   # https://github.com/actions/setup-python
@@ -24,6 +27,11 @@ jobs:
 
       - name: Unit Test
         run: python -m unittest -v test
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarqube-scan-action@v4  #https://github.com/marketplace/actions/sonarqube-cloud-scan
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
       - name: Login no Artifact Registry
         uses: docker/login-action@v3      # https://github.com/marketplace/actions/docker-login#google-artifact-registry-gar
@@ -64,3 +72,24 @@ jobs:
 
       - name: Validando a API
         run: 'curl "${{ steps.deploy.outputs.url }}"'
+
+      - name: Notificação Slack
+        id: slack
+        uses: slackapi/slack-github-action@v1.25.0
+        with:
+          payload: |
+            {
+              "text": "DevOpsLab Pipeline : ${{ job.status }}\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "DevOpsLab Pipeline: ${{ job.status }}\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_NOTIFICATIONS_TOKEN }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
