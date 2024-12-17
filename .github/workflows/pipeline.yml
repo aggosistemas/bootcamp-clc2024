@@ -14,7 +14,6 @@ jobs:
       - name: Download do Repositório
         uses: actions/checkout@v4       # https://github.com/actions/checkout
         with:
-          # Você está solicitando que nenhum histórico seja baixado além do commit mais recente.
           fetch-depth: 0
 
       - name: Setup Python
@@ -23,18 +22,18 @@ jobs:
           python-version: '3.10'
 
       - name: Install Requirements
-        run:  pip install flask
+        run: pip install flask
 
       - name: Unit Test
         run: python -m unittest -v test
 
       - name: SonarCloud Scan
-        uses: SonarSource/sonarqube-scan-action@v4  #https://github.com/marketplace/actions/sonarqube-cloud-scan
+        uses: SonarSource/sonarqube-scan-action@v4  # https://github.com/marketplace/actions/sonarqube-cloud-scan
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
       - name: Login no Artifact Registry
-        uses: docker/login-action@v3      # https://github.com/marketplace/actions/docker-login#google-artifact-registry-gar
+        uses: docker/login-action@v3      # https://github.com/marketplace/actions/docker-login
         with:
           registry: '${{ vars.GOOGLE_ARTIFACT }}'
           username: _json_key
@@ -51,23 +50,22 @@ jobs:
   Deploy:
     needs: Build
     runs-on: ubuntu-latest
-
     steps:
       - name: Download do Repositório
-        uses: actions/checkout@v4       # https://github.com/actions/checkout
+        uses: actions/checkout@v4
 
       - name: Login no GCP
-        uses: 'google-github-actions/auth@v2' # https://github.com/google-github-actions/auth
+        uses: 'google-github-actions/auth@v2'
         with:
           credentials_json: '${{ secrets.GOOGLE_CREDENTIALS }}'
 
       - name: Cloud Run Deploy
         id: deploy
-        uses: 'google-github-actions/deploy-cloudrun@v2'  # https://github.com/marketplace/actions/deploy-to-cloud-run
+        uses: 'google-github-actions/deploy-cloudrun@v2'
         with:
           service: ${{ vars.GOOGLE_MYAPP }}
           region: ${{ vars.GOOGLE_REGION }}
-          image:   ${{ vars.GOOGLE_ARTIFACT }}/${{ vars.GOOGLE_PROJECT_ID }}/${{ vars.GOOGLE_REPONAME }}/${{ vars.GOOGLE_MYAPP }}:latest
+          image: ${{ vars.GOOGLE_ARTIFACT }}/${{ vars.GOOGLE_PROJECT_ID }}/${{ vars.GOOGLE_REPONAME }}/${{ vars.GOOGLE_MYAPP }}:latest
           flags: '--allow-unauthenticated'
 
       - name: Validando a API
@@ -93,3 +91,20 @@ jobs:
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_NOTIFICATIONS_TOKEN }}
           SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
+  DAST:
+    needs: Deploy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+
+    steps:
+      - name: Download do Repositório
+        uses: actions/checkout@v4       # https://github.com/actions/checkout
+    
+      - name: DAST (ZAP Scan)
+        uses: zaproxy/action-full-scan@v0.12.0   # https://github.com/marketplace/actions/zap-full-scan
+        with:
+          target: 'https://aggosistemas-fgxq5tbfwq-ue.a.run.app/'
